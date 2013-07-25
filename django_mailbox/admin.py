@@ -2,6 +2,7 @@ import logging
 
 from django.conf import settings
 from django.contrib import admin
+from django.utils.safestring import mark_safe
 
 from django_mailbox.models import MessageAttachment, Message, Mailbox
 from django_mailbox.signals import message_received
@@ -37,7 +38,10 @@ class MailboxAdmin(admin.ModelAdmin):
 
 class MessageAttachmentAdmin(admin.ModelAdmin):
     raw_id_fields = ('message', )
-    list_display = ('message', 'document',)
+    list_display = ('Message', 'document',)
+
+    def Message(self, msg):
+        return decode(msg.message)
 
 
 class MessageAttachmentInline(admin.TabularInline):
@@ -56,6 +60,11 @@ class MessageAdmin(admin.ModelAdmin):
     def Subject(self, msg):
         return decode(msg.subject)
 
+    def Text(self, msg):
+        return mark_safe(msg.text.replace('\n', '<br>'))
+    Text.allow_tags=True
+    
+
     inlines = [
         MessageAttachmentInline,
     ]
@@ -66,6 +75,7 @@ class MessageAdmin(admin.ModelAdmin):
         'mailbox',
         'outgoing',
         'attachment_count',
+        'text'
     )
     ordering = ['-processed']
     list_filter = (
@@ -78,7 +88,7 @@ class MessageAdmin(admin.ModelAdmin):
         'in_reply_to',
     )
     readonly_fields = (
-        'text',
+        'Text',
     )
     actions = [resend_message_received_signal]
 
